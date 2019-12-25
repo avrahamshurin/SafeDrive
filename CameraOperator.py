@@ -3,62 +3,63 @@ import time
 
 
 class CameraOperator:
+    face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+    eye_cascade = cv2.CascadeClassifier("haarcascade_eye_tree_eyeglasses.xml")
     def __init__(self):
         # todo initialization
+        self.cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+        self.blink_count = 0
+        self.timeBetweenBlinks = 0
+        self.blinktime = 0
+        self.startBlink = True
+        self.maxtime = 0
+        self.timer = time.time()
+        self.initial = True
         self.main()
-
-    def get_time_between_blinks(self):
-        pass
-
-    def get_time_eyes_closed(self):
-        pass
 
     def main(self):
 
-        cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
-        face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
-        eye_cascade = cv2.CascadeClassifier("haarcascade_eye_tree_eyeglasses.xml")
-        blink_count = 0
-        timeBetweenBlinks = 0
-        blinktime = 0
-        startBlink = True
-        maxtime = 0
-        timer = time.time()
-        initial = True
         while True:
-            _, frame = cap.read()
+            _, frame = self.cap.read()
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+            faces = CameraOperator.face_cascade.detectMultiScale(gray, 1.3, 5)
             for x, y, h, w in faces:
                 cv2.rectangle(frame, (x, y), (x + h, y + w), (255, 0, 0), 2)
                 roi = gray[y:y + h // 2, x:x + w]
                 roi_color = frame[y:y + h, x:x + w]
-                eyes = eye_cascade.detectMultiScale(roi, 1.1, 6)
+                eyes = CameraOperator.eye_cascade.detectMultiScale(roi, 1.1, 6)
 
-                if timeBetweenBlinks > maxtime:
-                    maxtime = timeBetweenBlinks
-                    print(maxtime)
+                if self.timeBetweenBlinks > self.maxtime:
+                    self.maxtime = self.timeBetweenBlinks
+                    print(self.maxtime)
 
                 if len(eyes) == 0:
-                    if initial:
-                        timer = time.time()
-                        initial = False
-                    blinktime = time.time() - timer
-                    if blinktime > 1:
-                        print("wake up")
-                        print(time.time() - timer)
-                    if startBlink:
-                        startBlink = False
-                        timer = time.time()
-                    if blink_count == 0:
-                        currentTime = time.time()
+                    if self.initial:
+                        self.timer = time.time()
+                        self.initial = False
+                        self.currentTime = time.time()
+
+
+
+                    # self.blinktime = time.time() - self.timer
+                    #if self.blinktime > 1:
+                        # print("wake up")
+                        #print(self.blinktime)
+                    # if self.startBlink:
+                    #     self.startBlink = False
+                    #     self.timer = time.time()
+                    #if self.blink_count == 0:
+                     #   self.currentTime = time.time()
                     else:
-                        timeBetweenBlinks = time.time() - currentTime
-                        currentTime = time.time()
-                    blink_count += 1
+                        if time.time() - self.currentTime > 0.01:
+                            self.timeBetweenBlinks = time.time() - self.currentTime
+                        # print(self.timeBetweenBlinks)
+                        self.currentTime = time.time()
+                        self.blink_count += 1
+                    self.blinktime = time.time() - self.timer
                 else:
-                    startBlink = True
-                    initial = True
+                    self.startBlink = True
+                    self.initial = True
 
                 for ex, ey, eh, ew in eyes:
                     cv2.rectangle(roi_color, (ex, ey), (ex + eh, ey + ew), (0, 255, 0), 2)
@@ -69,4 +70,14 @@ class CameraOperator:
                 break
 
         cv2.destroyAllWindows()
-        cap.release()
+        self.cap.release()
+
+    def get_time_between_blinks(self):
+        return self.timeBetweenBlinks
+
+    def get_time_eyes_closed(self):
+        return self.blinktime
+
+
+
+CameraOperator()
